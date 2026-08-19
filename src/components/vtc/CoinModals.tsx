@@ -9,7 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { coinPackages, formatCoins } from "@/lib/coins";
+import {
+  COIN_EXPORT_PER_MINUTE,
+  COIN_TRANSCRIBE_PER_MINUTE,
+  COIN_VIDEO_PER_MINUTE,
+  coinPackages,
+  formatCoins,
+} from "@/lib/coins";
 import { cn } from "@/lib/utils";
 
 export function ConfirmCostModal({
@@ -17,6 +23,9 @@ export function ConfirmCostModal({
   onOpenChange,
   cost,
   minutes,
+  videos,
+  transcribe,
+  video,
   balance,
   onConfirm,
 }: {
@@ -24,6 +33,9 @@ export function ConfirmCostModal({
   onOpenChange: (o: boolean) => void;
   cost: number;
   minutes: number;
+  videos: number;
+  transcribe: number;
+  video: number;
   balance: number;
   onConfirm: () => void;
 }) {
@@ -33,20 +45,34 @@ export function ConfirmCostModal({
         <DialogHeader>
           <DialogTitle>Xác nhận sử dụng xu</DialogTitle>
           <DialogDescription>
-            Mỗi lần AI biên tập sẽ trừ xu theo thời lượng video gốc.
+            Chi phí được tính theo tổng thời lượng video gốc, tách theo từng công đoạn.
           </DialogDescription>
         </DialogHeader>
 
         <div className="ai-surface space-y-2.5 p-4 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Thời lượng video</span>
+            <span className="text-muted-foreground">
+              {videos} video · tổng thời lượng
+            </span>
             <span className="tabular-nums">{minutes} phút</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Chi phí biên tập</span>
-            <span className="font-semibold tabular-nums">−{formatCoins(cost)} xu</span>
+            <span className="text-muted-foreground">
+              1. Bóc băng &amp; phân tích ({COIN_TRANSCRIBE_PER_MINUTE} xu/phút)
+            </span>
+            <span className="tabular-nums">−{formatCoins(transcribe)} xu</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">
+              2. Dựng video bài giảng ({COIN_VIDEO_PER_MINUTE} xu/phút)
+            </span>
+            <span className="tabular-nums">−{formatCoins(video)} xu</span>
           </div>
           <div className="flex justify-between border-t border-border pt-2.5">
+            <span className="font-medium">Tổng trừ</span>
+            <span className="font-semibold tabular-nums">−{formatCoins(cost)} xu</span>
+          </div>
+          <div className="flex justify-between">
             <span className="text-muted-foreground">Số dư sau khi trừ</span>
             <span className="font-semibold tabular-nums text-success">
               {formatCoins(balance - cost)} xu
@@ -54,7 +80,8 @@ export function ConfirmCostModal({
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          Chỉnh sửa lại bài giảng sau khi AI hoàn thành là miễn phí.
+          Chỉnh sửa lại bài giảng sau khi AI hoàn thành là miễn phí. Chi phí xuất bản video thành
+          phẩm ({COIN_EXPORT_PER_MINUTE} xu/phút) tính riêng khi thầy cô xuất video.
         </p>
 
         <DialogFooter>
