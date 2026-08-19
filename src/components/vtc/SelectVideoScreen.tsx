@@ -212,8 +212,25 @@ export function SelectVideoScreen({
           disabled={!selected}
           onClick={onStart}
         >
-          <Sparkles className="size-5" /> AI biên tập bài giảng
+          <Sparkles className="size-5" />
+          {selected ? `AI biên tập bài giảng · ${formatCoins(cost)} xu` : "AI biên tập bài giảng"}
         </Button>
+        {selected ? (
+          <p className="mt-2.5 text-center text-xs text-muted-foreground">
+            {minutes} phút video × {COIN_PER_MINUTE} xu/phút.{" "}
+            {enough ? (
+              <>Số dư sau khi biên tập: {formatCoins(balance - cost)} xu.</>
+            ) : (
+              <button onClick={onTopUp} className="cursor-pointer text-primary hover:underline">
+                Không đủ xu – nạp thêm {formatCoins(cost - balance)} xu
+              </button>
+            )}
+          </p>
+        ) : (
+          <p className="mt-2.5 text-xs text-muted-foreground">
+            Chi phí {COIN_PER_MINUTE} xu cho mỗi phút video gốc.
+          </p>
+        )}
         <button
           className="mt-3 inline-flex cursor-pointer items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
           onClick={() => setAdvanced((v) => !v)}
