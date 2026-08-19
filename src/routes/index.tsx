@@ -197,6 +197,25 @@ function Index() {
         }}
       />
 
+      <ConfirmCostModal
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        cost={cost}
+        minutes={minutes}
+        balance={balance}
+        onConfirm={confirmStart}
+      />
+
+      <TopUpModal
+        open={topUpOpen}
+        onOpenChange={setTopUpOpen}
+        balance={balance}
+        needed={balance < cost ? cost - balance : undefined}
+        onTopUp={topUp}
+      />
+
+      {charged !== null && step !== "select" && <CoinToast amount={charged} balance={balance} />}
+
       {rendering && (
         <div className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm shadow-[var(--shadow-card)]">
           <Loader2 className="size-4 animate-spin text-primary" /> Đang cập nhật video...
