@@ -9,9 +9,10 @@ import { EditLessonPanel } from "@/components/vtc/EditLessonPanel";
 import { VideoEditor } from "@/components/vtc/VideoEditor";
 import { UseVideosModal } from "@/components/vtc/UseVideosModal";
 import { ConfirmCostModal, CoinToast, TopUpModal } from "@/components/vtc/CoinModals";
+import { ExportModal } from "@/components/vtc/ExportModal";
 import { CoinBadge } from "@/components/vtc/CoinBadge";
 import { initialLessons, sourceVideo, type Lesson } from "@/lib/course-data";
-import { costFor, durationToMinutes, useCoins } from "@/lib/coins";
+import { editCostBreakdown, useCoins } from "@/lib/coins";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -37,7 +38,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [step, setStep] = useState<"select" | "processing" | "ready">("select");
-  const [source, setSource] = useState<SelectedSource | null>(null);
+  const [sources, setSources] = useState<SelectedSource[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>(initialLessons);
   const [course, setCourse] = useState({
     title: "Tính bằng cách thuận tiện",
@@ -53,9 +54,11 @@ function Index() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [charged, setCharged] = useState<number | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportLessonId, setExportLessonId] = useState<string | null>(null);
 
-  const cost = costFor(source?.duration ?? sourceVideo.duration);
-  const minutes = durationToMinutes(source?.duration ?? sourceVideo.duration);
+  const durations = sources.length ? sources.map((s) => s.duration) : [sourceVideo.duration];
+  const { minutes, transcribe, video, total: cost } = editCostBreakdown(durations);
 
   const updateLesson = (id: string, patch: Partial<Lesson>) =>
     setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)));
@@ -79,8 +82,8 @@ function Index() {
     <div className="min-h-screen bg-background">
       {step === "select" && (
         <SelectVideoScreen
-          selected={source}
-          onSelect={setSource}
+          selected={sources}
+          onSelect={setSources}
           onStart={requestStart}
           onPreview={() => setPreviewIndex(0)}
           balance={balance}
@@ -100,7 +103,7 @@ function Index() {
         <ReadyScreen
           lessons={lessons}
           course={course}
-          sourceDuration={source?.duration ?? sourceVideo.duration}
+          sourceDuration={sources[0]?.duration ?? sourceVideo.duration}
           onCourseChange={setCourse}
           onReorder={(from, to) =>
             setLessons((ls) => {
@@ -114,6 +117,10 @@ function Index() {
           onEdit={setPanelLesson}
           onUse={() => setUseOpen(true)}
           onShowDetails={() => setEditorLesson(lessons[0] ?? null)}
+          onExport={(id) => {
+            setExportLessonId(id ?? null);
+            setExportOpen(true);
+          }}
         />
       )}
 
@@ -192,7 +199,7 @@ function Index() {
         onOpenChange={setUseOpen}
         onRestart={() => {
           setStep("select");
-          setSource(null);
+          setSources([]);
           setLessons(initialLessons);
         }}
       />
@@ -202,8 +209,25 @@ function Index() {
         onOpenChange={setConfirmOpen}
         cost={cost}
         minutes={minutes}
+        videos={sources.length || 1}
+        transcribe={transcribe}
+        video={video}
         balance={balance}
         onConfirm={confirmStart}
+      />
+
+      <ExportModal
+        open={exportOpen}
+        lessons={lessons}
+        initialLessonId={exportLessonId}
+        balance={balance}
+        onOpenChange={setExportOpen}
+        onConfirm={(c) => {
+          spend(c);
+          setCharged(c);
+          setTimeout(() => setCharged(null), 4000);
+        }}
+        onTopUp={() => setTopUpOpen(true)}
       />
 
       <TopUpModal

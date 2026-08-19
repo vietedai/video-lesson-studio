@@ -8,6 +8,7 @@ import {
   Pencil,
   Play,
   Sparkles,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ export function ReadyScreen({
   onEdit,
   onUse,
   onShowDetails,
+  onExport,
   sourceDuration,
 }: {
   lessons: Lesson[];
@@ -35,6 +37,7 @@ export function ReadyScreen({
   onEdit: (l: Lesson) => void;
   onUse: () => void;
   onShowDetails: () => void;
+  onExport: (lessonId?: string) => void;
   sourceDuration: string;
 }) {
   const [editing, setEditing] = useState(false);
@@ -167,6 +170,14 @@ export function ReadyScreen({
               <Button variant="ghost" size="sm" onClick={() => onEdit(l)}>
                 <Pencil className="size-4" /> Chỉnh sửa
               </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                title="Xuất riêng video này"
+                onClick={() => onExport(l.id)}
+              >
+                <Download className="size-4" /> Xuất
+              </Button>
               <span className="cursor-grab text-muted-foreground" title="Kéo để đổi thứ tự">
                 <GripVertical className="size-4" />
               </span>
@@ -181,8 +192,8 @@ export function ReadyScreen({
             {lessons.length} bài giảng sẽ được sử dụng
           </p>
           <div className="flex flex-1 justify-end gap-2 sm:flex-none">
-            <Button variant="outline" size="lg" onClick={() => lessons[0] && onEdit(lessons[0])}>
-              <Pencil className="size-4" /> Chỉnh sửa
+            <Button variant="outline" size="lg" onClick={() => onExport()}>
+              <Download className="size-4" /> Xuất video
             </Button>
             <Button variant="success" size="lg" onClick={onUse}>
               <Check className="size-4" /> Sử dụng các video này
