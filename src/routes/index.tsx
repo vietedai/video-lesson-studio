@@ -8,7 +8,10 @@ import { PreviewModal } from "@/components/vtc/PreviewModal";
 import { EditLessonPanel } from "@/components/vtc/EditLessonPanel";
 import { VideoEditor } from "@/components/vtc/VideoEditor";
 import { UseVideosModal } from "@/components/vtc/UseVideosModal";
+import { ConfirmCostModal, CoinToast, TopUpModal } from "@/components/vtc/CoinModals";
+import { CoinBadge } from "@/components/vtc/CoinBadge";
 import { initialLessons, sourceVideo, type Lesson } from "@/lib/course-data";
+import { costFor, durationToMinutes, useCoins } from "@/lib/coins";
 
 export const Route = createFileRoute("/")({
   head: () => ({
