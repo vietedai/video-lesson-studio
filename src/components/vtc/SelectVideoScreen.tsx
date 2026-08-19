@@ -58,24 +58,12 @@ const removalOptions = [
   "Các đoạn không liên quan",
 ];
 
-const uploadBatch: SelectedSource[] = [
-  {
-    id: "u1",
-    title: "Bai giang tuan 3.mp4",
-    duration: "45:32",
-    date: "19/08/2026",
-    source: "Tải lên",
-    hue: 200,
-  },
-  {
-    id: "u2",
-    title: "Bai giang tuan 3 - phan 2.mp4",
-    duration: "22:10",
-    date: "19/08/2026",
-    source: "Tải lên",
-    hue: 280,
-  },
+const uploadBatch = [
+  { title: "Bai giang tuan 3.mp4", duration: "45:32", hue: 200 },
+  { title: "Bai giang tuan 3 - phan 2.mp4", duration: "22:10", hue: 280 },
+  { title: "Bai tap ung dung.mp4", duration: "12:48", hue: 150 },
 ];
+
 
 export function SelectVideoScreen({
   selected,
