@@ -184,7 +184,7 @@ export function SelectVideoScreen({
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
-            startUpload();
+            startUpload(3);
           }}
         >
           <span className="flex size-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
@@ -195,21 +195,32 @@ export function SelectVideoScreen({
             Chọn nhiều video cùng lúc từ máy tính. Kéo thả cả nhóm video vào đây cũng được.
           </p>
           {uploading ? (
-            <div className="mt-5">
-              <Progress value={progress} className="h-2" />
-              <p className="mt-2 text-xs text-muted-foreground">Đang tải lên {progress}%</p>
+            <div className="mt-5 space-y-3">
+              {queue.map((f) => (
+                <div key={f.name}>
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="truncate">{f.name}</span>
+                    <span className="shrink-0 text-muted-foreground">{f.progress}%</span>
+                  </div>
+                  <Progress value={f.progress} className="mt-1 h-1.5" />
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground">
+                Đang tải lên {queue.length} tệp video...
+              </p>
             </div>
           ) : (
             <>
-              <Button variant="outline" className="mt-5 w-full" onClick={startUpload}>
-                Chọn tệp video
+              <Button variant="outline" className="mt-5 w-full" onClick={() => startUpload(2)}>
+                {has ? "Tải thêm video" : "Chọn tệp video"}
               </Button>
               <p className="mt-2 text-center text-xs text-muted-foreground">
-                Hỗ trợ MP4, MOV, WebM · chọn nhiều tệp
+                Hỗ trợ MP4, MOV, WebM · chọn nhiều tệp cùng lúc
               </p>
             </>
           )}
           <input ref={fileRef} type="file" hidden multiple accept="video/*" />
+
         </div>
       </div>
 
