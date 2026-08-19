@@ -9,13 +9,12 @@ import {
   Sparkles,
   Upload,
   Video,
-  RefreshCw,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
@@ -34,10 +33,16 @@ import {
 import { Thumb } from "./Thumb";
 import { CoinBadge } from "./CoinBadge";
 import { zoomRecordings, sourceVideo } from "@/lib/course-data";
-import { COIN_PER_MINUTE, costFor, durationToMinutes, formatCoins } from "@/lib/coins";
+import {
+  COIN_TRANSCRIBE_PER_MINUTE,
+  COIN_VIDEO_PER_MINUTE,
+  editCostBreakdown,
+  formatCoins,
+} from "@/lib/coins";
 import { cn } from "@/lib/utils";
 
 export type SelectedSource = {
+  id: string;
   title: string;
   duration: string;
   date: string;
@@ -53,6 +58,25 @@ const removalOptions = [
   "Các đoạn không liên quan",
 ];
 
+const uploadBatch: SelectedSource[] = [
+  {
+    id: "u1",
+    title: "Bai giang tuan 3.mp4",
+    duration: "45:32",
+    date: "19/08/2026",
+    source: "Tải lên",
+    hue: 200,
+  },
+  {
+    id: "u2",
+    title: "Bai giang tuan 3 - phan 2.mp4",
+    duration: "22:10",
+    date: "19/08/2026",
+    source: "Tải lên",
+    hue: 280,
+  },
+];
+
 export function SelectVideoScreen({
   selected,
   onSelect,
@@ -61,15 +85,15 @@ export function SelectVideoScreen({
   balance,
   onTopUp,
 }: {
-  selected: SelectedSource | null;
-  onSelect: (s: SelectedSource | null) => void;
+  selected: SelectedSource[];
+  onSelect: (s: SelectedSource[]) => void;
   onStart: () => void;
   onPreview: () => void;
   balance: number;
   onTopUp: () => void;
 }) {
   const [zoomOpen, setZoomOpen] = useState(false);
-  const [pick, setPick] = useState("z1");
+  const [pick, setPick] = useState<string[]>(["z1"]);
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState("all");
   const [advanced, setAdvanced] = useState(false);
@@ -86,6 +110,12 @@ export function SelectVideoScreen({
       (period === "all" || (period === "7" ? r.date >= "12/08/2026" : true)),
   );
 
+  const addSources = (items: SelectedSource[]) => {
+    const map = new Map(selected.map((s) => [s.id, s]));
+    items.forEach((i) => map.set(i.id, i));
+    onSelect([...map.values()]);
+  };
+
   const startUpload = () => {
     if (uploading) return;
     setUploading(true);
@@ -95,13 +125,7 @@ export function SelectVideoScreen({
         if (p >= 100) {
           clearInterval(t);
           setUploading(false);
-          onSelect({
-            title: "Bai giang tuan 3.mp4",
-            duration: "45:32",
-            date: "19/08/2026",
-            source: "Tải lên",
-            hue: 200,
-          });
+          addSources(uploadBatch);
           return 100;
         }
         return p + 10;
@@ -109,9 +133,11 @@ export function SelectVideoScreen({
     }, 130);
   };
 
-  const cost = selected ? costFor(selected.duration) : 0;
-  const minutes = selected ? durationToMinutes(selected.duration) : 0;
-  const enough = balance >= cost;
+  const has = selected.length > 0;
+  const { minutes, transcribe, video, total } = editCostBreakdown(
+    selected.map((s) => s.duration),
+  );
+  const enough = balance >= total;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-14">
@@ -128,109 +154,140 @@ export function SelectVideoScreen({
         </p>
       </header>
 
-      <div className="mt-10">
-        {!selected ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="surface flex flex-col p-6">
-              <span className="flex size-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-                <Video className="size-5" />
-              </span>
-              <h2 className="mt-4 text-lg font-semibold">Chọn từ Zoom</h2>
-              <p className="mt-1.5 flex-1 text-sm text-muted-foreground">
-                Sử dụng video từ các buổi học đã ghi hình trên Zoom.
-              </p>
-              <Button className="mt-5 w-full" onClick={() => setZoomOpen(true)}>
-                Chọn video
-              </Button>
-            </div>
+      <div className="mt-10 grid gap-4 sm:grid-cols-2">
+        <div className="surface flex flex-col p-6">
+          <span className="flex size-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+            <Video className="size-5" />
+          </span>
+          <h2 className="mt-4 text-lg font-semibold">Chọn từ Zoom</h2>
+          <p className="mt-1.5 flex-1 text-sm text-muted-foreground">
+            Chọn một hoặc nhiều buổi học đã ghi hình trên Zoom.
+          </p>
+          <Button
+            variant={has ? "outline" : "default"}
+            className="mt-5 w-full"
+            onClick={() => setZoomOpen(true)}
+          >
+            {has ? "Thêm video từ Zoom" : "Chọn video"}
+          </Button>
+        </div>
 
-            <div
-              className={cn(
-                "surface flex flex-col p-6 transition-colors",
-                uploading && "border-primary/40",
-              )}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                startUpload();
-              }}
-            >
-              <span className="flex size-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-                <Upload className="size-5" />
-              </span>
-              <h2 className="mt-4 text-lg font-semibold">Tải video lên</h2>
-              <p className="mt-1.5 flex-1 text-sm text-muted-foreground">
-                Chọn video bài giảng có sẵn trên máy tính. Kéo thả video vào đây cũng được.
-              </p>
-              {uploading ? (
-                <div className="mt-5">
-                  <Progress value={progress} className="h-2" />
-                  <p className="mt-2 text-xs text-muted-foreground">Đang tải lên {progress}%</p>
-                </div>
-              ) : (
-                <>
-                  <Button variant="outline" className="mt-5 w-full" onClick={startUpload}>
-                    Chọn tệp video
-                  </Button>
-                  <p className="mt-2 text-center text-xs text-muted-foreground">
-                    Hỗ trợ MP4, MOV, WebM
-                  </p>
-                </>
-              )}
-              <input ref={fileRef} type="file" hidden accept="video/*" />
+        <div
+          className={cn(
+            "surface flex flex-col p-6 transition-colors",
+            uploading && "border-primary/40",
+          )}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            startUpload();
+          }}
+        >
+          <span className="flex size-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+            <Upload className="size-5" />
+          </span>
+          <h2 className="mt-4 text-lg font-semibold">Tải video lên</h2>
+          <p className="mt-1.5 flex-1 text-sm text-muted-foreground">
+            Chọn nhiều video cùng lúc từ máy tính. Kéo thả cả nhóm video vào đây cũng được.
+          </p>
+          {uploading ? (
+            <div className="mt-5">
+              <Progress value={progress} className="h-2" />
+              <p className="mt-2 text-xs text-muted-foreground">Đang tải lên {progress}%</p>
             </div>
-          </div>
-        ) : (
-          <div className="surface flex flex-wrap items-center gap-4 p-4">
-            <Thumb hue={selected.hue} className="h-20 w-32" />
-            <div className="min-w-52 flex-1">
-              <h2 className="text-base font-semibold">{selected.title}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Video gốc · {selected.duration}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Ngày ghi hình: {selected.date} · Nguồn: {selected.source}
-              </p>
-            </div>
-            <div className="flex gap-1">
-              <Button variant="ghost" size="sm" onClick={onPreview}>
-                <Play className="size-4" /> Xem video
+          ) : (
+            <>
+              <Button variant="outline" className="mt-5 w-full" onClick={startUpload}>
+                Chọn tệp video
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => onSelect(null)}>
-                <RefreshCw className="size-4" /> Đổi video
-              </Button>
-            </div>
-          </div>
-        )}
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                Hỗ trợ MP4, MOV, WebM · chọn nhiều tệp
+              </p>
+            </>
+          )}
+          <input ref={fileRef} type="file" hidden multiple accept="video/*" />
+        </div>
       </div>
+
+      {has && (
+        <div className="mt-6 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">
+              {selected.length} video đã chọn · {minutes} phút
+            </p>
+            <Button variant="ghost" size="sm" onClick={() => onSelect([])}>
+              Bỏ chọn tất cả
+            </Button>
+          </div>
+          {selected.map((s) => (
+            <div key={s.id} className="surface flex flex-wrap items-center gap-4 p-3">
+              <Thumb hue={s.hue} className="h-14 w-24" showPlay={false} label={s.duration} />
+              <div className="min-w-40 flex-1">
+                <p className="text-sm font-semibold">{s.title}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {s.date} · {s.duration} · {s.source}
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={onPreview}>
+                <Play className="size-4" /> Xem
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Bỏ video này"
+                onClick={() => onSelect(selected.filter((x) => x.id !== s.id))}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="mt-8 flex flex-col items-center">
         <Button
           variant="ai"
           size="xl"
           className="w-full max-w-md"
-          disabled={!selected}
+          disabled={!has}
           onClick={onStart}
         >
           <Sparkles className="size-5" />
-          {selected ? `AI biên tập bài giảng · ${formatCoins(cost)} xu` : "AI biên tập bài giảng"}
+          {has ? `AI biên tập bài giảng · ${formatCoins(total)} xu` : "AI biên tập bài giảng"}
         </Button>
-        {selected ? (
-          <p className="mt-2.5 text-center text-xs text-muted-foreground">
-            {minutes} phút video × {COIN_PER_MINUTE} xu/phút.{" "}
-            {enough ? (
-              <>Số dư sau khi biên tập: {formatCoins(balance - cost)} xu.</>
-            ) : (
-              <button onClick={onTopUp} className="cursor-pointer text-primary hover:underline">
-                Không đủ xu – nạp thêm {formatCoins(cost - balance)} xu
-              </button>
-            )}
+
+        <div className="mt-3 w-full max-w-md rounded-xl bg-muted/60 p-4 text-sm">
+          <p className="font-medium">Chi phí biên tập được tính như sau</p>
+          <div className="mt-2.5 space-y-1.5 text-muted-foreground">
+            <div className="flex justify-between gap-4">
+              <span>Bóc băng &amp; phân tích nội dung ({COIN_TRANSCRIBE_PER_MINUTE} xu/phút)</span>
+              <span className="tabular-nums text-foreground">
+                {has ? `${formatCoins(transcribe)} xu` : `${COIN_TRANSCRIBE_PER_MINUTE} xu/phút`}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span>Dựng video bài giảng ({COIN_VIDEO_PER_MINUTE} xu/phút)</span>
+              <span className="tabular-nums text-foreground">
+                {has ? `${formatCoins(video)} xu` : `${COIN_VIDEO_PER_MINUTE} xu/phút`}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4 border-t border-border pt-1.5 font-medium text-foreground">
+              <span>Tổng {has ? `(${minutes} phút)` : ""}</span>
+              <span className="tabular-nums">
+                {has ? `${formatCoins(total)} xu` : "5 xu/phút"}
+              </span>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Chi phí xuất bản video thành phẩm được tính riêng khi thầy cô xuất video.
           </p>
-        ) : (
-          <p className="mt-2.5 text-xs text-muted-foreground">
-            Chi phí {COIN_PER_MINUTE} xu cho mỗi phút video gốc.
-          </p>
-        )}
+          {has && !enough && (
+            <button onClick={onTopUp} className="mt-2 cursor-pointer text-xs text-primary hover:underline">
+              Không đủ xu – nạp thêm {formatCoins(total - balance)} xu
+            </button>
+          )}
+        </div>
+
         <button
           className="mt-3 inline-flex cursor-pointer items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
           onClick={() => setAdvanced((v) => !v)}
@@ -354,14 +411,14 @@ export function SelectVideoScreen({
                 key={r.id}
                 className={cn(
                   "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors",
-                  pick === r.id ? "border-primary/50 bg-accent/40" : "border-border",
+                  pick.includes(r.id) ? "border-primary/50 bg-accent/40" : "border-border",
                 )}
               >
-                <input
-                  type="radio"
-                  className="accent-[oklch(0.55_0.19_258)]"
-                  checked={pick === r.id}
-                  onChange={() => setPick(r.id)}
+                <Checkbox
+                  checked={pick.includes(r.id)}
+                  onCheckedChange={(c) =>
+                    setPick((p) => (c ? [...p, r.id] : p.filter((x) => x !== r.id)))
+                  }
                 />
                 <Thumb hue={r.hue} className="h-14 w-24" showPlay={false} label={r.duration} />
                 <span className="flex-1">
@@ -379,25 +436,33 @@ export function SelectVideoScreen({
             )}
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setZoomOpen(false)}>
-              Hủy
-            </Button>
-            <Button
-              onClick={() => {
-                const r = zoomRecordings.find((x) => x.id === pick)!;
-                onSelect({
-                  title: r.title,
-                  duration: r.id === "z1" ? sourceVideo.duration : r.duration,
-                  date: r.date,
-                  source: "Zoom",
-                  hue: r.hue,
-                });
-                setZoomOpen(false);
-              }}
-            >
-              Chọn video này
-            </Button>
+          <DialogFooter className="items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">Đã chọn {pick.length} video</p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setZoomOpen(false)}>
+                Hủy
+              </Button>
+              <Button
+                disabled={pick.length === 0}
+                onClick={() => {
+                  addSources(
+                    zoomRecordings
+                      .filter((x) => pick.includes(x.id))
+                      .map((r) => ({
+                        id: r.id,
+                        title: r.title,
+                        duration: r.id === "z1" ? sourceVideo.duration : r.duration,
+                        date: r.date,
+                        source: "Zoom",
+                        hue: r.hue,
+                      })),
+                  );
+                  setZoomOpen(false);
+                }}
+              >
+                Chọn {pick.length > 1 ? `${pick.length} video` : "video này"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
