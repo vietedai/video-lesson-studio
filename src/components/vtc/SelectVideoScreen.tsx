@@ -63,7 +63,7 @@ export function SelectVideoScreen({
   onPreview: () => void;
 }) {
   const [zoomOpen, setZoomOpen] = useState(false);
-  const [pick, setPick] = useState(zoomRecordings[0].id);
+  const [pick, setPick] = useState("z1");
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState("all");
   const [advanced, setAdvanced] = useState(false);

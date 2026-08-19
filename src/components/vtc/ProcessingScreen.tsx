@@ -66,7 +66,7 @@ export function ProcessingScreen({ onDone }: { onDone: () => void }) {
                   !done && !running && "text-muted-foreground",
                 )}
               >
-                {done ? `Đã ${s.replace(/^(Đã |Đang |Chuẩn bị )/, (m) => (m === "Đã " ? "" : ""))}`.replace("Đã Đã ", "Đã ") : s}
+                {s}
               </span>
             </div>
           );
