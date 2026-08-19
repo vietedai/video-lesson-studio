@@ -49,11 +49,31 @@ function Index() {
   const [editorLesson, setEditorLesson] = useState<Lesson | null>(null);
   const [useOpen, setUseOpen] = useState(false);
   const [rendering, setRendering] = useState(false);
+  const { balance, spend, topUp } = useCoins();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const [charged, setCharged] = useState<number | null>(null);
+
+  const cost = costFor(source?.duration ?? sourceVideo.duration);
+  const minutes = durationToMinutes(source?.duration ?? sourceVideo.duration);
 
   const updateLesson = (id: string, patch: Partial<Lesson>) =>
     setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)));
 
   const panelIndex = panelLesson ? lessons.findIndex((l) => l.id === panelLesson.id) : -1;
+
+  const requestStart = () => {
+    if (balance < cost) setTopUpOpen(true);
+    else setConfirmOpen(true);
+  };
+
+  const confirmStart = () => {
+    spend(cost);
+    setCharged(cost);
+    setConfirmOpen(false);
+    setStep("processing");
+    setTimeout(() => setCharged(null), 4000);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,9 +81,17 @@ function Index() {
         <SelectVideoScreen
           selected={source}
           onSelect={setSource}
-          onStart={() => setStep("processing")}
+          onStart={requestStart}
           onPreview={() => setPreviewIndex(0)}
+          balance={balance}
+          onTopUp={() => setTopUpOpen(true)}
         />
+      )}
+
+      {step !== "select" && (
+        <div className="pointer-events-auto fixed right-6 top-6 z-40">
+          <CoinBadge balance={balance} onTopUp={() => setTopUpOpen(true)} />
+        </div>
       )}
 
       {step === "processing" && <ProcessingScreen onDone={() => setStep("ready")} />}
