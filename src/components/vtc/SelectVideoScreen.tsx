@@ -109,9 +109,16 @@ export function SelectVideoScreen({
     }, 130);
   };
 
+  const cost = selected ? costFor(selected.duration) : 0;
+  const minutes = selected ? durationToMinutes(selected.duration) : 0;
+  const enough = balance >= cost;
+
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-14">
-      <header className="text-center">
+      <div className="flex justify-end">
+        <CoinBadge balance={balance} onTopUp={onTopUp} />
+      </div>
+      <header className="mt-6 text-center">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
           <Sparkles className="size-3.5" /> Trợ lý AI cho giáo viên
         </span>
