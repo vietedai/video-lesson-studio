@@ -32,7 +32,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Thumb } from "./Thumb";
+import { CoinBadge } from "./CoinBadge";
 import { zoomRecordings, sourceVideo } from "@/lib/course-data";
+import { COIN_PER_MINUTE, costFor, durationToMinutes, formatCoins } from "@/lib/coins";
 import { cn } from "@/lib/utils";
 
 export type SelectedSource = {
@@ -56,11 +58,15 @@ export function SelectVideoScreen({
   onSelect,
   onStart,
   onPreview,
+  balance,
+  onTopUp,
 }: {
   selected: SelectedSource | null;
   onSelect: (s: SelectedSource | null) => void;
   onStart: () => void;
   onPreview: () => void;
+  balance: number;
+  onTopUp: () => void;
 }) {
   const [zoomOpen, setZoomOpen] = useState(false);
   const [pick, setPick] = useState("z1");
