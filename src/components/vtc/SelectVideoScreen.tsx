@@ -87,10 +87,11 @@ export function SelectVideoScreen({
   const [advanced, setAdvanced] = useState(false);
   const [organize, setOrganize] = useState("auto");
   const [removals, setRemovals] = useState<string[]>(removalOptions);
-  const [uploading, setUploading] = useState(false);
+  const [queue, setQueue] = useState<{ name: string; progress: number }[]>([]);
   const [progress, setProgress] = useState(0);
   const [applied, setApplied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const uploading = queue.length > 0;
 
   const filtered = zoomRecordings.filter(
     (r) =>
@@ -104,22 +105,37 @@ export function SelectVideoScreen({
     onSelect([...map.values()]);
   };
 
-  const startUpload = () => {
+  const startUpload = (count = 2) => {
     if (uploading) return;
-    setUploading(true);
+    const stamp = Date.now();
+    const files = uploadBatch.slice(0, count).map((f, i) => ({
+      ...f,
+      id: `u${stamp}-${i}`,
+      date: "19/08/2026",
+      source: "Tải lên",
+    }));
+    setQueue(files.map((f) => ({ name: f.title, progress: 0 })));
     setProgress(0);
     const t = setInterval(() => {
       setProgress((p) => {
-        if (p >= 100) {
+        const next = p + 8;
+        setQueue((q) =>
+          q.map((item, i) => ({
+            ...item,
+            progress: Math.max(0, Math.min(100, Math.round((next - i * 18) * 1.4))),
+          })),
+        );
+        if (next >= 100 + (files.length - 1) * 18) {
           clearInterval(t);
-          setUploading(false);
-          addSources(uploadBatch);
+          setQueue([]);
+          addSources(files);
           return 100;
         }
-        return p + 10;
+        return next;
       });
-    }, 130);
+    }, 110);
   };
+
 
   const has = selected.length > 0;
   const { minutes, transcribe, video, total } = editCostBreakdown(
