@@ -58,24 +58,12 @@ const removalOptions = [
   "Các đoạn không liên quan",
 ];
 
-const uploadBatch: SelectedSource[] = [
-  {
-    id: "u1",
-    title: "Bai giang tuan 3.mp4",
-    duration: "45:32",
-    date: "19/08/2026",
-    source: "Tải lên",
-    hue: 200,
-  },
-  {
-    id: "u2",
-    title: "Bai giang tuan 3 - phan 2.mp4",
-    duration: "22:10",
-    date: "19/08/2026",
-    source: "Tải lên",
-    hue: 280,
-  },
+const uploadBatch = [
+  { title: "Bai giang tuan 3.mp4", duration: "45:32", hue: 200 },
+  { title: "Bai giang tuan 3 - phan 2.mp4", duration: "22:10", hue: 280 },
+  { title: "Bai tap ung dung.mp4", duration: "12:48", hue: 150 },
 ];
+
 
 export function SelectVideoScreen({
   selected,
@@ -99,10 +87,11 @@ export function SelectVideoScreen({
   const [advanced, setAdvanced] = useState(false);
   const [organize, setOrganize] = useState("auto");
   const [removals, setRemovals] = useState<string[]>(removalOptions);
-  const [uploading, setUploading] = useState(false);
+  const [queue, setQueue] = useState<{ name: string; progress: number }[]>([]);
   const [progress, setProgress] = useState(0);
   const [applied, setApplied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const uploading = queue.length > 0;
 
   const filtered = zoomRecordings.filter(
     (r) =>
@@ -116,22 +105,37 @@ export function SelectVideoScreen({
     onSelect([...map.values()]);
   };
 
-  const startUpload = () => {
+  const startUpload = (count = 2) => {
     if (uploading) return;
-    setUploading(true);
+    const stamp = Date.now();
+    const files = uploadBatch.slice(0, count).map((f, i) => ({
+      ...f,
+      id: `u${stamp}-${i}`,
+      date: "19/08/2026",
+      source: "Tải lên",
+    }));
+    setQueue(files.map((f) => ({ name: f.title, progress: 0 })));
     setProgress(0);
     const t = setInterval(() => {
       setProgress((p) => {
-        if (p >= 100) {
+        const next = p + 8;
+        setQueue((q) =>
+          q.map((item, i) => ({
+            ...item,
+            progress: Math.max(0, Math.min(100, Math.round((next - i * 18) * 1.4))),
+          })),
+        );
+        if (next >= 100 + (files.length - 1) * 18) {
           clearInterval(t);
-          setUploading(false);
-          addSources(uploadBatch);
+          setQueue([]);
+          addSources(files);
           return 100;
         }
-        return p + 10;
+        return next;
       });
-    }, 130);
+    }, 110);
   };
+
 
   const has = selected.length > 0;
   const { minutes, transcribe, video, total } = editCostBreakdown(
@@ -180,7 +184,7 @@ export function SelectVideoScreen({
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
-            startUpload();
+            startUpload(3);
           }}
         >
           <span className="flex size-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
@@ -191,21 +195,32 @@ export function SelectVideoScreen({
             Chọn nhiều video cùng lúc từ máy tính. Kéo thả cả nhóm video vào đây cũng được.
           </p>
           {uploading ? (
-            <div className="mt-5">
-              <Progress value={progress} className="h-2" />
-              <p className="mt-2 text-xs text-muted-foreground">Đang tải lên {progress}%</p>
+            <div className="mt-5 space-y-3">
+              {queue.map((f) => (
+                <div key={f.name}>
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="truncate">{f.name}</span>
+                    <span className="shrink-0 text-muted-foreground">{f.progress}%</span>
+                  </div>
+                  <Progress value={f.progress} className="mt-1 h-1.5" />
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground">
+                Đang tải lên {queue.length} tệp video...
+              </p>
             </div>
           ) : (
             <>
-              <Button variant="outline" className="mt-5 w-full" onClick={startUpload}>
-                Chọn tệp video
+              <Button variant="outline" className="mt-5 w-full" onClick={() => startUpload(2)}>
+                {has ? "Tải thêm video" : "Chọn tệp video"}
               </Button>
               <p className="mt-2 text-center text-xs text-muted-foreground">
-                Hỗ trợ MP4, MOV, WebM · chọn nhiều tệp
+                Hỗ trợ MP4, MOV, WebM · chọn nhiều tệp cùng lúc
               </p>
             </>
           )}
           <input ref={fileRef} type="file" hidden multiple accept="video/*" />
+
         </div>
       </div>
 
