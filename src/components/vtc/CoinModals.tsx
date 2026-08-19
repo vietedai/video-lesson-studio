@@ -80,7 +80,7 @@ export function TopUpModal({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   balance: number;
-  needed?: number;
+  needed?: number | undefined;
   onTopUp: (coins: number) => void;
 }) {
   const [pick, setPick] = useState(coinPackages[1]!.id);
