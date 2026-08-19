@@ -8,7 +8,10 @@ import { PreviewModal } from "@/components/vtc/PreviewModal";
 import { EditLessonPanel } from "@/components/vtc/EditLessonPanel";
 import { VideoEditor } from "@/components/vtc/VideoEditor";
 import { UseVideosModal } from "@/components/vtc/UseVideosModal";
+import { ConfirmCostModal, CoinToast, TopUpModal } from "@/components/vtc/CoinModals";
+import { CoinBadge } from "@/components/vtc/CoinBadge";
 import { initialLessons, sourceVideo, type Lesson } from "@/lib/course-data";
+import { costFor, durationToMinutes, useCoins } from "@/lib/coins";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,11 +49,31 @@ function Index() {
   const [editorLesson, setEditorLesson] = useState<Lesson | null>(null);
   const [useOpen, setUseOpen] = useState(false);
   const [rendering, setRendering] = useState(false);
+  const { balance, spend, topUp } = useCoins();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const [charged, setCharged] = useState<number | null>(null);
+
+  const cost = costFor(source?.duration ?? sourceVideo.duration);
+  const minutes = durationToMinutes(source?.duration ?? sourceVideo.duration);
 
   const updateLesson = (id: string, patch: Partial<Lesson>) =>
     setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)));
 
   const panelIndex = panelLesson ? lessons.findIndex((l) => l.id === panelLesson.id) : -1;
+
+  const requestStart = () => {
+    if (balance < cost) setTopUpOpen(true);
+    else setConfirmOpen(true);
+  };
+
+  const confirmStart = () => {
+    spend(cost);
+    setCharged(cost);
+    setConfirmOpen(false);
+    setStep("processing");
+    setTimeout(() => setCharged(null), 4000);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,9 +81,17 @@ function Index() {
         <SelectVideoScreen
           selected={source}
           onSelect={setSource}
-          onStart={() => setStep("processing")}
+          onStart={requestStart}
           onPreview={() => setPreviewIndex(0)}
+          balance={balance}
+          onTopUp={() => setTopUpOpen(true)}
         />
+      )}
+
+      {step !== "select" && (
+        <div className="pointer-events-auto fixed right-6 top-6 z-40">
+          <CoinBadge balance={balance} onTopUp={() => setTopUpOpen(true)} />
+        </div>
       )}
 
       {step === "processing" && <ProcessingScreen onDone={() => setStep("ready")} />}
@@ -165,6 +196,25 @@ function Index() {
           setLessons(initialLessons);
         }}
       />
+
+      <ConfirmCostModal
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        cost={cost}
+        minutes={minutes}
+        balance={balance}
+        onConfirm={confirmStart}
+      />
+
+      <TopUpModal
+        open={topUpOpen}
+        onOpenChange={setTopUpOpen}
+        balance={balance}
+        needed={balance < cost ? cost - balance : undefined}
+        onTopUp={topUp}
+      />
+
+      {charged !== null && step !== "select" && <CoinToast amount={charged} balance={balance} />}
 
       {rendering && (
         <div className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm shadow-[var(--shadow-card)]">

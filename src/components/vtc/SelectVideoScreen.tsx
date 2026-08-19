@@ -32,7 +32,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Thumb } from "./Thumb";
+import { CoinBadge } from "./CoinBadge";
 import { zoomRecordings, sourceVideo } from "@/lib/course-data";
+import { COIN_PER_MINUTE, costFor, durationToMinutes, formatCoins } from "@/lib/coins";
 import { cn } from "@/lib/utils";
 
 export type SelectedSource = {
@@ -56,11 +58,15 @@ export function SelectVideoScreen({
   onSelect,
   onStart,
   onPreview,
+  balance,
+  onTopUp,
 }: {
   selected: SelectedSource | null;
   onSelect: (s: SelectedSource | null) => void;
   onStart: () => void;
   onPreview: () => void;
+  balance: number;
+  onTopUp: () => void;
 }) {
   const [zoomOpen, setZoomOpen] = useState(false);
   const [pick, setPick] = useState("z1");
@@ -103,9 +109,16 @@ export function SelectVideoScreen({
     }, 130);
   };
 
+  const cost = selected ? costFor(selected.duration) : 0;
+  const minutes = selected ? durationToMinutes(selected.duration) : 0;
+  const enough = balance >= cost;
+
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-14">
-      <header className="text-center">
+      <div className="flex justify-end">
+        <CoinBadge balance={balance} onTopUp={onTopUp} />
+      </div>
+      <header className="mt-6 text-center">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
           <Sparkles className="size-3.5" /> Trợ lý AI cho giáo viên
         </span>
@@ -199,8 +212,25 @@ export function SelectVideoScreen({
           disabled={!selected}
           onClick={onStart}
         >
-          <Sparkles className="size-5" /> AI biên tập bài giảng
+          <Sparkles className="size-5" />
+          {selected ? `AI biên tập bài giảng · ${formatCoins(cost)} xu` : "AI biên tập bài giảng"}
         </Button>
+        {selected ? (
+          <p className="mt-2.5 text-center text-xs text-muted-foreground">
+            {minutes} phút video × {COIN_PER_MINUTE} xu/phút.{" "}
+            {enough ? (
+              <>Số dư sau khi biên tập: {formatCoins(balance - cost)} xu.</>
+            ) : (
+              <button onClick={onTopUp} className="cursor-pointer text-primary hover:underline">
+                Không đủ xu – nạp thêm {formatCoins(cost - balance)} xu
+              </button>
+            )}
+          </p>
+        ) : (
+          <p className="mt-2.5 text-xs text-muted-foreground">
+            Chi phí {COIN_PER_MINUTE} xu cho mỗi phút video gốc.
+          </p>
+        )}
         <button
           className="mt-3 inline-flex cursor-pointer items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
           onClick={() => setAdvanced((v) => !v)}
