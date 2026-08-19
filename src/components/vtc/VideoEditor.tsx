@@ -26,6 +26,7 @@ export function VideoEditor({
   const [playing, setPlaying] = useState(false);
   const [pos, setPos] = useState(28);
   const [restored, setRestored] = useState<string[]>([]);
+  const [deleted, setDeleted] = useState<string[]>([]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
@@ -111,26 +112,35 @@ export function VideoEditor({
           <div className="flex items-center gap-2 border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">Nội dung bài giảng</h2>
             <Info className="size-3.5 text-muted-foreground" />
+            <span className="ml-auto text-xs text-muted-foreground">
+              Di chuột vào đoạn để xóa
+            </span>
           </div>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
             {baseTranscript.map((t, i) => {
               const isRestored = restored.includes(t.time);
-              if (t.removed && !isRestored) {
+              const isDeleted = deleted.includes(t.time);
+              if ((t.removed && !isRestored) || isDeleted) {
                 return (
                   <div key={i} className="rounded-xl border border-dashed border-border bg-muted/60 p-3">
                     <div className="flex items-center gap-2">
                       <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-medium text-[oklch(0.5_0.13_70)]">
-                        AI đã loại bỏ
+                        {isDeleted ? "Thầy cô đã xóa" : "AI đã loại bỏ"}
                       </span>
-                      <span className="text-xs text-muted-foreground">{t.range}</span>
+                      <span className="text-xs text-muted-foreground">{t.range ?? t.time}</span>
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground line-through">{t.text}</p>
-                    <p className="mt-1.5 text-xs text-muted-foreground">Lý do: {t.reason}</p>
+                    {t.reason && !isDeleted && (
+                      <p className="mt-1.5 text-xs text-muted-foreground">Lý do: {t.reason}</p>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
                       className="mt-1.5 -ml-2 text-primary"
-                      onClick={() => setRestored((r) => [...r, t.time])}
+                      onClick={() => {
+                        setDeleted((d) => d.filter((x) => x !== t.time));
+                        setRestored((r) => (r.includes(t.time) ? r : [...r, t.time]));
+                      }}
                     >
                       <RotateCcw className="size-3.5" /> Khôi phục đoạn này
                     </Button>
@@ -142,7 +152,7 @@ export function VideoEditor({
                   <span className="pt-0.5 text-xs tabular-nums text-muted-foreground">{t.time}</span>
                   <p className="flex-1 text-sm">
                     {t.text}
-                    {isRestored && (
+                    {isRestored && t.removed && (
                       <span className="ml-2 rounded-full bg-success-soft px-2 py-0.5 text-[11px] text-success">
                         đã khôi phục
                       </span>
@@ -150,8 +160,11 @@ export function VideoEditor({
                   </p>
                   <button
                     className="cursor-pointer text-muted-foreground opacity-0 transition group-hover:opacity-100"
-                    title="Loại bỏ đoạn này"
-                    onClick={() => setRestored((r) => r.filter((x) => x !== t.time))}
+                    title="Xóa đoạn này khỏi bài giảng"
+                    onClick={() => {
+                      setRestored((r) => r.filter((x) => x !== t.time));
+                      if (!t.removed) setDeleted((d) => [...d, t.time]);
+                    }}
                   >
                     <X className="size-4" />
                   </button>
