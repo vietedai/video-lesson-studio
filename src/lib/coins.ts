@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
-export const COIN_PER_MINUTE = 5;
+/** Chi phí được tách rõ theo 2 công đoạn AI */
+export const COIN_TRANSCRIBE_PER_MINUTE = 2; // bóc băng + phân tích nội dung
+export const COIN_VIDEO_PER_MINUTE = 3; // dựng video bài giảng
+export const COIN_PER_MINUTE = COIN_TRANSCRIBE_PER_MINUTE + COIN_VIDEO_PER_MINUTE;
+/** Chi phí xuất bản video thành phẩm (render + lưu trữ) */
+export const COIN_EXPORT_PER_MINUTE = 2;
+
 export const INITIAL_BALANCE = 120;
 const STORAGE_KEY = "vtc-coin-balance";
 
@@ -16,8 +22,26 @@ export function durationToMinutes(duration: string) {
   return Math.max(1, Math.ceil(Number(m) + Number(s) / 60));
 }
 
+export function totalMinutes(durations: string[]) {
+  return durations.reduce((sum, d) => sum + durationToMinutes(d), 0);
+}
+
 export function costFor(duration: string) {
   return durationToMinutes(duration) * COIN_PER_MINUTE;
+}
+
+/** Bảng chi phí biên tập tách theo công đoạn */
+export function editCostBreakdown(durations: string[]) {
+  const minutes = totalMinutes(durations);
+  const transcribe = minutes * COIN_TRANSCRIBE_PER_MINUTE;
+  const video = minutes * COIN_VIDEO_PER_MINUTE;
+  return { minutes, transcribe, video, total: transcribe + video };
+}
+
+/** Chi phí xuất bản cho danh sách bài giảng được chọn */
+export function exportCost(durations: string[]) {
+  const minutes = totalMinutes(durations);
+  return { minutes, total: minutes * COIN_EXPORT_PER_MINUTE };
 }
 
 export function formatCoins(n: number) {
